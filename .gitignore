@@ -1,0 +1,21 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+
+# dependencies / cache
+node_modules/
+.cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# logs / temp
+*.log
+tmp/
+*.tmp
+~$*

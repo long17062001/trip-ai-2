@@ -1,0 +1,17 @@
+{
+  "name": "tripai-itinerary-generator",
+  "version": "1.0.0",
+  "description": "AI 기반 여행 일정 자동 생성 시스템 (OpenRouter + Leaflet)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test tests/unit/itinerary.test.mjs",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "test:real": "node tests/real-check.mjs"
+  },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

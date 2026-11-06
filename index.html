@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TripAI - AI 기반 여행 일정 자동 생성 시스템</title>
+  <meta name="description" content="목적지, 여행 기간, 예산과 취향을 입력하면 AI가 일별 여행 일정을 자동으로 생성합니다.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d6fe0'/%3E%3Cpath d='M6 16 26 7l-5 18-5-7z' fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="TripAI 홈">
+        <svg class="brand-logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M6 16 26 7l-5 18-5-7z" fill="#fff"/></svg>
+        <span class="brand-text"><strong>TripAI</strong><small>AI와 함께 만드는 나만의 여행 일정</small></span>
+      </a>
+      <nav class="main-nav" aria-label="주 메뉴">
+        <a href="#plan">여행 계획</a>
+        <a href="#itinerary">AI 일정</a>
+        <a href="#map-section">지도</a>
+        <a href="#cost">예상 비용</a>
+        <a href="#settings">AI 설정</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="hero-eyebrow">AI 기반 여행 일정 자동 생성 시스템</p>
+        <h1>AI가 만들어주는 나만의 여행</h1>
+        <p class="hero-desc">목적지, 여행 기간, 예산과 취향을 입력하면 AI가 최적의 여행 일정을 자동으로 생성합니다.</p>
+      </div>
+    </section>
+
+    <section id="plan" class="container plan-grid">
+      <form id="trip-form" class="card form-card" novalidate>
+        <h2 class="card-title">여행 정보 입력</h2>
+
+        <div class="field-grid">
+          <div class="field field-wide">
+            <label for="destination">여행 목적지</label>
+            <input id="destination" name="destination" type="text" maxlength="60" placeholder="예: 서울, 제주도, 도쿄" autocomplete="off" required>
+            <p class="field-error" id="err-destination" role="alert"></p>
+          </div>
+
+          <div class="field">
+            <label for="startDate">여행 시작일</label>
+            <input id="startDate" name="startDate" type="date">
+            <p class="field-error" id="err-startDate" role="alert"></p>
+          </div>
+
+          <div class="field">
+            <label for="days">여행 일수</label>
+            <div class="input-suffix">
+              <input id="days" name="days" type="number" min="1" max="14" step="1" value="3" inputmode="numeric">
+              <span>일</span>
+            </div>
+            <p class="field-hint" id="nights-hint"></p>
+            <p class="field-error" id="err-days" role="alert"></p>
+          </div>
+
+          <div class="field">
+            <label for="budget">총 예산</label>
+            <input id="budget" name="budget" type="number" min="1" step="any" value="1000000" inputmode="decimal">
+            <p class="field-hint" id="budget-hint"></p>
+            <p class="field-error" id="err-budget" role="alert"></p>
+          </div>
+
+          <div class="field">
+            <label for="currency">통화</label>
+            <select id="currency" name="currency"></select>
+          </div>
+
+          <div class="field">
+            <label for="travelers">여행 인원</label>
+            <div class="input-suffix">
+              <input id="travelers" name="travelers" type="number" min="1" max="20" step="1" value="2" inputmode="numeric">
+              <span>명</span>
+            </div>
+            <p class="field-error" id="err-travelers" role="alert"></p>
+          </div>
+        </div>
+
+        <fieldset class="field">
+          <legend>여행 스타일</legend>
+          <div class="style-options" id="style-options"></div>
+        </fieldset>
+
+        <fieldset class="field">
+          <legend>여행 취향 <small>(여러 개 선택 가능)</small></legend>
+          <div class="chip-group" id="interest-options"></div>
+        </fieldset>
+
+        <div class="field">
+          <label for="activitiesNote">선호 활동 <small>(선택)</small></label>
+          <input id="activitiesNote" name="activitiesNote" type="text" maxlength="300" placeholder="예: 한강 산책, 전통시장 구경, 박물관 관람" autocomplete="off">
+        </div>
+
+        <div class="form-error" id="form-error" role="alert" hidden></div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-lg" id="generate-btn">AI 여행 일정 생성</button>
+          <button type="button" class="btn btn-ghost" id="demo-btn">데모 데이터 사용</button>
+        </div>
+      </form>
+
+      <aside id="settings" class="card settings-card" aria-labelledby="settings-title">
+        <h2 class="card-title" id="settings-title">AI 설정</h2>
+
+        <div class="model-box">
+          <span class="model-label">AI 모델</span>
+          <code id="model-name">openai/gpt-5.6-luna</code>
+          <span class="status-dot" id="server-key-status"></span>
+        </div>
+
+        <form class="field" id="key-form" autocomplete="off">
+          <label for="apiKey">OpenRouter API 키</label>
+          <div class="key-row">
+            <input id="apiKey" type="password" placeholder="sk-or-..." autocomplete="off" spellcheck="false">
+            <button type="button" class="btn btn-small" id="toggle-key" aria-pressed="false">보기</button>
+          </div>
+          <label class="check-row">
+            <input type="checkbox" id="remember-key">
+            <span>이 브라우저 탭에서만 키 기억하기 (탭을 닫으면 삭제)</span>
+          </label>
+          <p class="notice notice-warn">개발/데모용 기능입니다. 입력한 키는 이 서버를 거쳐 OpenRouter 로만 전달되며 코드, 로그, 파일에 저장되지 않습니다. 서버의 <code>.env</code> 에 키를 설정하면 화면에 입력하지 않아도 됩니다.</p>
+        </form>
+
+        <div class="field">
+          <label for="provider">AI 제공자</label>
+          <select id="provider">
+            <option value="auto">자동 선택 (권장)</option>
+          </select>
+          <p class="field-hint" id="provider-hint">OpenRouter가 사용 가능한 제공자 중에서 자동으로 선택합니다.</p>
+        </div>
+
+        <div class="settings-actions">
+          <button type="button" class="btn btn-outline" id="test-key-btn">연결 테스트</button>
+          <span class="test-result" id="test-result" role="status"></span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="container result-section" id="result">
+      <div class="section-head" id="itinerary">
+        <h2 id="itinerary-heading">AI 일정</h2>
+      </div>
+
+      <div id="loading-panel" class="card loading-card" hidden aria-live="polite">
+        <div class="loader" aria-hidden="true"><span></span><span></span><span></span></div>
+        <h3 id="loading-title">AI가 여행 일정을 만들고 있습니다...</h3>
+        <ol class="loading-steps" id="loading-steps"></ol>
+        <p class="loading-meta"><span id="loading-elapsed">0</span>초 경과<span id="loading-attempt"></span></p>
+        <button type="button" class="btn btn-outline btn-small" id="cancel-btn">취소</button>
+      </div>
+
+      <div id="empty-state" class="card empty-card">
+        <p><strong>아직 생성된 일정이 없습니다.</strong></p>
+        <p>위의 「여행 정보 입력」에서 정보를 입력하고 「AI 여행 일정 생성」을 누르거나, 「데모 데이터 사용」으로 화면을 먼저 확인할 수 있습니다.</p>
+      </div>
+
+      <div id="result-content" hidden>
+        <div id="summary-card" class="card summary-card"></div>
+
+        <div class="mobile-tabs" role="tablist" aria-label="결과 보기 전환">
+          <button type="button" role="tab" class="tab is-active" data-view="list" aria-selected="true">일정</button>
+          <button type="button" role="tab" class="tab" data-view="map" aria-selected="false">지도</button>
+        </div>
+
+        <div class="result-grid" id="result-grid" data-view="list">
+          <div class="result-left">
+            <div id="days-container" class="days"></div>
+
+            <section id="cost" class="card cost-card" aria-labelledby="cost-title">
+              <h3 id="cost-title" class="card-title">예상 여행 비용</h3>
+              <div id="cost-content"></div>
+            </section>
+
+            <section class="card tips-card" id="tips-card" hidden>
+              <h3 class="card-title">여행 팁</h3>
+              <ul id="tips-list"></ul>
+              <div id="assumptions-wrap" hidden>
+                <h4>AI의 가정</h4>
+                <ul id="assumptions-list"></ul>
+              </div>
+            </section>
+          </div>
+
+          <div class="result-right" id="map-section">
+            <div class="map-card card">
+              <div class="map-head">
+                <h3 class="card-title">여행 지도</h3>
+                <span class="map-status" id="map-status" role="status"></span>
+              </div>
+              <div class="day-filter" id="day-filter" role="group" aria-label="날짜별 보기"></div>
+              <div id="map" class="map" role="application" aria-label="여행 지도"></div>
+              <p class="map-banner" id="map-banner" hidden></p>
+              <p class="map-note" id="map-note"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>TripAI · AI 기반 여행 일정 자동 생성 시스템 (대학교 프로젝트)</p>
+      <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · 일정과 비용은 AI가 생성한 참고 정보입니다.</p>
+    </div>
+  </footer>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
